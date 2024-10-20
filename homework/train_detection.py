@@ -169,11 +169,11 @@ if __name__ == "__main__":
 
     parser.add_argument("--exp_dir", type=str, default="logs")
     parser.add_argument("--model_name", type=str, default="detection_model")
-    parser.add_argument("--num_epoch", type=int, default=100)
+    parser.add_argument("--num_epoch", type=int, default=50)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--seed", type=int, default=2024)
-    parser.add_argument("--depth_loss_weight", type=float, default=2.0)
+    parser.add_argument("--depth_loss_weight", type=float, default=3.0)
     parser.add_argument("--dice_loss_weight", type=float, default=5.0)
 
     # Pass all arguments to train_detection
