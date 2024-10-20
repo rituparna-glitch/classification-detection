@@ -150,15 +150,49 @@ class Detector(nn.Module):
 
         return logits, depth
 
-    def predict(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        logits, raw_depth = self(x)
-        pred = logits.argmax(dim=1)  # (B, H, W)
+    def predict(self, x: torch.Tensor, batch_size: int = 8) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Predict class labels and normalized depth for the input images in batches.
 
-        # Normalizing depth to [0, 1] range
-        depth = torch.sigmoid(raw_depth)
-        depth = depth.squeeze(1)
+        Args:
+            x (torch.FloatTensor): image tensor of shape (B, 3, H, W) with values in [0, 1].
+            batch_size (int): the number of samples to process at a time.
 
-        return pred, depth
+        Returns:
+            tuple of (torch.LongTensor, torch.FloatTensor):
+                - pred: predicted class labels {0, 1, 2} with shape (B, H, W)
+                - depth: normalized depth values in [0, 1] with shape (B, H, W)
+        """
+        # Split the input into smaller batches
+        num_samples = x.size(0)
+        preds = []
+        depths = []
+
+        # Loop over the input data in batches
+        for i in range(0, num_samples, batch_size):
+            # Get the current batch
+            x_batch = x[i:i + batch_size]
+
+            # Perform inference on the batch
+            logits, raw_depth = self(x_batch)
+
+            # Get predicted class labels
+            pred_batch = logits.argmax(dim=1)  # (B, H, W)
+
+            # Normalize depth to [0, 1] range using sigmoid
+            depth_batch = torch.sigmoid(raw_depth).squeeze(1)  # (B, H, W)
+
+            # Append the batch results
+            preds.append(pred_batch)
+            depths.append(depth_batch)
+
+        # Concatenate all batch results along the batch dimension
+        preds = torch.cat(preds, dim=0)
+        depths = torch.cat(depths, dim=0)
+
+        return preds, depths
+    
+
 
 MODEL_FACTORY = {
     "classifier": Classifier,
