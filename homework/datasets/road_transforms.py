@@ -95,7 +95,7 @@ class RandomRotation:
         return sample
 
 
-class RandomVerticalFlip(tv_transforms.RandomVerticalFlip):
+class RandomVerticalFlip:
     def __init__(self, p=0.5):
         self.p = p
 
@@ -110,7 +110,7 @@ class RandomVerticalFlip(tv_transforms.RandomVerticalFlip):
         return sample
 
 
-class RandomResizedCrop(tv_transforms.RandomResizedCrop):
+class RandomResizedCrop:
     def __init__(self, size=(96, 128), scale=(0.8, 1.0)):
         self.size = size
         self.scale = scale
