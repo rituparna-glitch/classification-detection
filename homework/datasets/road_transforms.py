@@ -128,6 +128,14 @@ class RandomResizedCrop:
         h_target = int(round(np.sqrt(target_area * aspect_ratio)))
         w_target = int(round(np.sqrt(target_area / aspect_ratio)))
 
+        # Ensure target dimensions are valid
+        h_target = min(h_target, h)
+        w_target = min(w_target, w)
+
+        # Check if target dimensions are positive
+        if h_target <= 0 or w_target <= 0:
+            raise ValueError("Target height and width must be positive.")
+
         # Randomly crop the image
         top = np.random.randint(0, h - h_target + 1)
         left = np.random.randint(0, w - w_target + 1)
