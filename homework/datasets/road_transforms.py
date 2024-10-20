@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from torchvision import transforms as tv_transforms
+import scipy.ndimage
 
 from .road_utils import Track
 
@@ -78,6 +79,19 @@ class DepthLoader(ImageLoader):
 
         sample["depth"] = depth.astype(np.float32)
 
+        return sample
+
+
+
+class RandomRotation:
+    def __init__(self, degrees):
+        self.degrees = degrees
+
+    def __call__(self, sample):
+        angle = np.random.uniform(-self.degrees, self.degrees)
+        sample["image"] = scipy.ndimage.rotate(sample["image"], angle, axes=(1, 2), reshape=False, mode='nearest')
+        sample["depth"] = scipy.ndimage.rotate(sample["depth"], angle, axes=(0, 1), reshape=False, mode='nearest')
+        sample["track"] = scipy.ndimage.rotate(sample["track"], angle, axes=(0, 1), reshape=False, mode='nearest', order=0)
         return sample
 
 
