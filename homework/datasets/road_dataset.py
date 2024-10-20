@@ -49,7 +49,7 @@ class RoadDataset(Dataset):
                     road_transforms.RandomHorizontalFlip(p=0.5),
                     road_transforms.RandomRotation(degrees=15),
                     road_transforms.RandomVerticalFlip(p=0.5),
-                    road_transforms.RandomResizedCrop(size=(96, 128), scale=(0.8, 1.0)),
+                    # road_transforms.RandomResizedCrop(size=(96, 128), scale=(0.8, 1.0)),
                 ]
             )
 
