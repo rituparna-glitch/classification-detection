@@ -99,81 +99,58 @@ class Classifier(nn.Module):
 
 
 class Detector(nn.Module):
-    def __init__(
-        self,
-        in_channels: int = 3,
-        num_classes: int = 3,
-    ):
-        """
-        A single model that performs segmentation and depth regression
-
-        Args:
-            in_channels: int, number of input channels
-            num_classes: int
-        """
+    def __init__(self, in_channels: int = 3, num_classes: int = 3):
         super().__init__()
 
-        # Normalization parameters
-        self.register_buffer("input_mean", torch.tensor([0.485, 0.456, 0.406]))
-        self.register_buffer("input_std", torch.tensor([0.229, 0.224, 0.225]))
-
         # Down-sampling layers
-        self.down1 = nn.Conv2d(in_channels, 16, kernel_size=3, stride=2, padding=1)  # (B, 16, H/2, W/2)
-        self.down2 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1)           # (B, 32, H/4, W/4)
+        self.encoder = nn.Sequential(
+            self.conv_block(in_channels, 16),  # Down1
+            self.conv_block(16, 32),            # Down2
+            self.conv_block(32, 64),            # Down3
+        )
 
-        # Up-sampling layers
-        self.up1 = nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1)  # (B, 16, H/2, W/2)
-        self.up2 = nn.ConvTranspose2d(16, 16, kernel_size=3, stride=2, padding=1, output_padding=1)  # (B, 16, H, W)
+        # Up-sampling layers with skip connections
+        self.up1 = self.upconv_block(64, 32)  # Up1
+        self.up2 = self.upconv_block(32, 16)  # Up2
+        self.up3 = self.upconv_block(16, 16)  # Additional upsample to reach original size
 
         # Output layers
-        # Segmentation head
-        self.logits_conv = nn.Conv2d(16, num_classes, kernel_size=1)  # (B, num_classes, H, W)
-         # Depth prediction head
-        self.depth_conv = nn.Conv2d(16, 1, kernel_size=1)              # (B, 1, H, W)
+        self.logits_conv = nn.Conv2d(16, num_classes, kernel_size=1)
+        self.depth_conv = nn.Conv2d(16, 1, kernel_size=1)
+
+    def conv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool2d(2)  # Downsample by a factor of 2
+        )
+
+    def upconv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Used in training, takes an image and returns raw logits and raw depth.
-        This is what the loss functions use as input.
+        # Encoder
+        enc_out1 = self.encoder[0](x)  # Down1
+        enc_out2 = self.encoder[1](enc_out1)  # Down2
+        enc_out3 = self.encoder[2](enc_out2)  # Down3
 
-        Args:
-            x (torch.FloatTensor): image with shape (B, 3, H, W) and vals in [0, 1]
-
-        Returns:
-            tuple of (torch.FloatTensor, torch.FloatTensor):
-                - logits: (B, num_classes, H, W)
-                - depth: (B, 1, H, W)
-        """
-        # Normalize input
-        z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
-
-        # Down-sampling path
-        z = F.relu(self.down1(z))  # Down1
-        z = F.relu(self.down2(z))  # Down2
-
-        # Up-sampling path
-        z = F.relu(self.up1(z))    # Up1
-        z = F.relu(self.up2(z))    # Up2
+        # Decoder with skip connections
+        dec_out1 = self.up1(enc_out3) + enc_out2  # Skip from Down2
+        dec_out2 = self.up2(dec_out1) + enc_out1  # Skip from Down1
+        dec_out3 = self.up3(dec_out2)  # Additional upsampling
 
         # Output layers
-        logits = self.logits_conv(z)  # (B, num_classes, H, W)
-        depth = self.depth_conv(z)    # (B, 1, H, W)
+        logits = self.logits_conv(dec_out3)  # Ensure the shape matches target size
+        depth = self.depth_conv(dec_out3)
 
         return logits, depth
 
     def predict(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Used for inference, takes an image and returns class labels and normalized depth.
-        This is what the metrics use as input (this is what the grader will use!).
-
-        Args:
-            x (torch.FloatTensor): image with shape (B, 3, H, W) and vals in [0, 1]
-
-        Returns:
-            tuple of (torch.LongTensor, torch.FloatTensor):
-                - pred: class labels {0, 1, 2} with shape (B, H, W)
-                - depth: normalized depth [0, 1] with shape (B, H, W)
-        """
         logits, raw_depth = self(x)
         pred = logits.argmax(dim=1)  # (B, H, W)
 
@@ -182,7 +159,6 @@ class Detector(nn.Module):
         depth = depth.squeeze(1)
 
         return pred, depth
-
 
 MODEL_FACTORY = {
     "classifier": Classifier,
