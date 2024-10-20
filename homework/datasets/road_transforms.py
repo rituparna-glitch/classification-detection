@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms as tv_transforms
 import scipy.ndimage
+import torchvision.transforms.functional as F
 
 from .road_utils import Track
 
