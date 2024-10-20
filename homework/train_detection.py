@@ -73,7 +73,9 @@ def train_detection(
     # Create loss functions and optimizer
     segmentation_loss_func = torch.nn.CrossEntropyLoss()
     depth_loss_func = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+
 
     # Define metric for detection evaluation
     detection_metric = DetectionMetric(num_classes=3)
@@ -172,7 +174,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--depth_loss_weight", type=float, default=2.0)
-    parser.add_argument("--dice_loss_weight", type=float, default=2.0)
+    parser.add_argument("--dice_loss_weight", type=float, default=5.0)
 
     # Pass all arguments to train_detection
     train_detection(**vars(parser.parse_args()))
