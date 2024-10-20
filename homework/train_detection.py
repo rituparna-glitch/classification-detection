@@ -9,6 +9,20 @@ import torch.nn.functional as F
 from .models import Detector, save_model
 from .datasets.road_dataset import load_data
 from .metrics import DetectionMetric
+import os
+
+# Define paths for different environments
+if 'COLAB_GPU' in os.environ:  # Check if running on Google Colab
+    base_path = '/content/drive/MyDrive/homeowrk3'
+elif 'KAGGLE_KERNEL_RUN_TYPE' in os.environ:  # Check if running on Kaggle
+    base_path = '/kaggle/working/classification-detection'
+else:  # Assume local machine
+    base_path = '/Users/rituparna/Downloads/homework3'
+
+# Define train and validation data paths
+train_data_path = os.path.join(base_path, 'road_data/train')
+val_data_path = os.path.join(base_path, 'road_data/val')
+
 
 def dice_loss(pred, target, smooth=1.0):
     """
@@ -53,8 +67,8 @@ def train_detection(
     model = model.to(device)
 
     # Load training and validation data
-    train_data = load_data("road_data/train", transform_pipeline="aug", shuffle=True, batch_size=batch_size)
-    val_data = load_data("road_data/val", shuffle=False)
+    train_data = load_data(train_data_path, transform_pipeline="aug", shuffle=True, batch_size=batch_size)
+    val_data = load_data(val_data_path, shuffle=False)
 
     # Create loss functions and optimizer
     segmentation_loss_func = torch.nn.CrossEntropyLoss()
