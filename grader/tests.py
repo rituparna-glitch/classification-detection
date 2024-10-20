@@ -191,7 +191,7 @@ class RoadDetectorGrader(BaseGrader):
         key = "accuracy"
         val = self.metrics[key]
         score = normalized_score(val, self.RANGE_ACCURACY[0], self.RANGE_ACCURACY[1])
-        print("score", score)
+        print(score)
 
         return score, f"{key}: {val:.3f}"
 

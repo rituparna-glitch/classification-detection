@@ -95,6 +95,55 @@ class RandomRotation:
         return sample
 
 
+class RandomVerticalFlip(tv_transforms.RandomVerticalFlip):
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, sample):
+        if np.random.rand() < self.p:
+            sample["image"] = np.flip(sample["image"], axis=1).copy()
+            sample["depth"] = np.flip(sample["depth"], axis=0).copy()
+            # Flip track labels if necessary
+            flip_track = np.flip(sample["track"], axis=0).copy()
+            sample["track"] = np.select([flip_track == 1, flip_track == 2], [2, 1], flip_track)
+        
+        return sample
+
+
+class RandomResizedCrop(tv_transforms.RandomResizedCrop):
+    def __init__(self, size=(96, 128), scale=(0.8, 1.0)):
+        self.size = size
+        self.scale = scale
+
+    def __call__(self, sample):
+        # Get original dimensions
+        h, w = sample["image"].shape[1:3]
+        area = h * w
+
+        # Randomly pick the target area
+        target_area = np.random.uniform(self.scale[0] * area, self.scale[1] * area)
+        aspect_ratio = np.random.uniform(0.75, 1.33)  # Aspect ratio range
+
+        # Calculate the target height and width
+        h_target = int(round(np.sqrt(target_area * aspect_ratio)))
+        w_target = int(round(np.sqrt(target_area / aspect_ratio)))
+
+        # Randomly crop the image
+        top = np.random.randint(0, h - h_target + 1)
+        left = np.random.randint(0, w - w_target + 1)
+
+        sample["image"] = sample["image"][:, top:top + h_target, left:left + w_target]
+        sample["depth"] = sample["depth"][top:top + h_target, left:left + w_target]
+        sample["track"] = sample["track"][top:top + h_target, left:left + w_target]
+
+        # Resize to the desired output size
+        sample["image"] = F.resize(sample["image"], self.size)
+        sample["depth"] = F.resize(sample["depth"], self.size)
+        sample["track"] = F.resize(sample["track"], self.size)
+
+        return sample
+
+
 class RandomHorizontalFlip(tv_transforms.RandomHorizontalFlip):
     def __call__(self, sample: dict):
         if np.random.rand() < self.p:
