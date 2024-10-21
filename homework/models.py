@@ -102,17 +102,19 @@ class Detector(nn.Module):
     def __init__(self, in_channels: int = 3, num_classes: int = 3):
         super().__init__()
 
-        # Down-sampling layers
+        # Down-sampling layers (Encoder)
         self.encoder = nn.Sequential(
-            self.conv_block(in_channels, 16),  # Down1
-            self.conv_block(16, 32),            # Down2
-            self.conv_block(32, 64),            # Down3
+            self.conv_block(in_channels, 32),  # Down1
+            self.conv_block(32, 64),            # Down2
+            self.conv_block(64, 128),           # Down3
+            self.conv_block(128, 256),          # Down4
         )
 
-        # Up-sampling layers with skip connections
-        self.up1 = self.upconv_block(64, 32)  # Up1
-        self.up2 = self.upconv_block(32, 16)  # Up2
-        self.up3 = self.upconv_block(16, 16)  # Additional upsample to reach original size
+        # Up-sampling layers (Decoder)
+        self.up1 = self.upconv_block(256, 128)  # Up1
+        self.up2 = self.upconv_block(128, 64)   # Up2
+        self.up3 = self.upconv_block(64, 32)    # Up3
+        self.up4 = self.upconv_block(32, 16)    # Additional upsample to reach original size
 
         # Output layers
         self.logits_conv = nn.Conv2d(16, num_classes, kernel_size=1)
@@ -122,7 +124,10 @@ class Detector(nn.Module):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
             nn.MaxPool2d(2)  # Downsample by a factor of 2
         )
 
@@ -130,7 +135,7 @@ class Detector(nn.Module):
         return nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -138,15 +143,17 @@ class Detector(nn.Module):
         enc_out1 = self.encoder[0](x)  # Down1
         enc_out2 = self.encoder[1](enc_out1)  # Down2
         enc_out3 = self.encoder[2](enc_out2)  # Down3
+        enc_out4 = self.encoder[3](enc_out3)  # Down4
 
         # Decoder with skip connections
-        dec_out1 = self.up1(enc_out3) + enc_out2  # Skip from Down2
-        dec_out2 = self.up2(dec_out1) + enc_out1  # Skip from Down1
-        dec_out3 = self.up3(dec_out2)  # Additional upsampling
+        dec_out1 = self.up1(enc_out4) + enc_out3  # Skip from Down3
+        dec_out2 = self.up2(dec_out1) + enc_out2  # Skip from Down2
+        dec_out3 = self.up3(dec_out2) + enc_out1  # Skip from Down1
+        dec_out4 = self.up4(dec_out3)  # Additional upsampling
 
         # Output layers
-        logits = self.logits_conv(dec_out3)  # Ensure the shape matches target size
-        depth = self.depth_conv(dec_out3)
+        logits = self.logits_conv(dec_out4)  # Ensure the shape matches target size
+        depth = self.depth_conv(dec_out4)
 
         return logits, depth
 
