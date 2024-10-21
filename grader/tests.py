@@ -11,7 +11,7 @@ from .metrics import AccuracyMetric, DetectionMetric
 
 # A hidden test split will be used for grading
 CLASSIFICATION_DATA_SPLIT = "/kaggle/working/classification-detection/classification_data/val"
-ROAD_DATA_SPLIT = "/kaggle/working/classification-detetion/road_data/val"
+ROAD_DATA_SPLIT = "/kaggle/working/classification-detection/road_data/val"
 
 
 def normalized_score(val: float, low: float, high: float):
