@@ -222,7 +222,7 @@ def load_model(
         assert model_path.exists(), f"{model_path.name} not found"
 
         try:
-            m.load_state_dict(torch.load(model_path, map_location="cpu"))
+            m.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
         except RuntimeError as e:
             raise AssertionError(
                 f"Failed to load {model_path.name}, make sure the default model arguments are set correctly"
