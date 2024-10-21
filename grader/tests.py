@@ -9,9 +9,24 @@ from .datasets import classification_dataset, road_dataset
 from .grader import Case, Grader
 from .metrics import AccuracyMetric, DetectionMetric
 
+import os
+
 # A hidden test split will be used for grading
-CLASSIFICATION_DATA_SPLIT = "/kaggle/working/classification-detection/classification_data/val"
-ROAD_DATA_SPLIT = "/kaggle/working/classification-detection/road_data/val"
+
+# Define paths for different environments
+if 'COLAB_GPU' in os.environ:  # Check if running on Google Colab
+    base_path = '/content/drive/MyDrive/homeowrk3'
+elif 'KAGGLE_KERNEL_RUN_TYPE' in os.environ:  # Check if running on Kaggle
+    base_path = '/kaggle/working/classification-detection'
+else:  # Assume local machine
+    base_path = ''
+
+
+CLASSIFICATION_DATA_SPLIT = os.path.join(base_path, 'classification_data/val')
+ROAD_DATA_SPLIT = os.path.join(base_path, 'road_data/val')
+
+# CLASSIFICATION_DATA_SPLIT = "classification_data/val"
+# ROAD_DATA_SPLIT = "road_data/val"
 
 
 def normalized_score(val: float, low: float, high: float):
@@ -185,7 +200,7 @@ class RoadDetectorGrader(BaseGrader):
         assert pred.shape == (batch_size, 96, 128), f"Label shape: {pred.shape}"
         assert pred_depth.shape == (batch_size, 96, 128), f"Depth shape: {pred_depth.shape}"
 
-    @Case(score=10, timeout=20000)
+    @Case(score=10, timeout=10000)
     def test_accuracy(self):
         """Segmentation Accuracy"""
         key = "accuracy"

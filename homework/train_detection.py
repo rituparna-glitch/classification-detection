@@ -17,7 +17,7 @@ if 'COLAB_GPU' in os.environ:  # Check if running on Google Colab
 elif 'KAGGLE_KERNEL_RUN_TYPE' in os.environ:  # Check if running on Kaggle
     base_path = '/kaggle/working/classification-detection'
 else:  # Assume local machine
-    base_path = '/Users/rituparna/Downloads/homework3'
+    base_path = ''
 
 # Define train and validation data paths
 train_data_path = os.path.join(base_path, 'road_data/train')
